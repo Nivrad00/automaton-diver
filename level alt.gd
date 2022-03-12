@@ -4,12 +4,11 @@ onready var Automaton = Game.Automaton
 onready var Neighborhood = Game.Neighborhood
 onready var Initial = Game.Initial
 onready var x_max = Game.X_MAX
-onready var y_max = Game.Y_MAX
 
 var next_row = 0
-var start_target = 50 # generate this many rows at the very start
-var generation_speed = 160 # generate this many rows per second after starting
 
+const GENERATION_SPEED = 200 # generate at max this many rows per second
+const Y_BUFFER = 80
 const QUANT = 0.1
 const DEFAULT_VOLUME = -15
 
@@ -18,6 +17,8 @@ var music_frame = 0
 var note_length = 0
 
 var binary_rule = ""
+
+var change_history = []
 
 func initialize_level():
 	clear()
@@ -36,28 +37,44 @@ func initialize_level():
 		elif Game.initial == Initial.RANDOM:
 			set_cell(x, 0, randi() % 2)
 	set_cell((x_max-1)/2, 0, 1)
-	
-	# final row
-	for x in range(0, x_max):
-		set_cell(x, y_max, 2)
 		
-	for y in range(1, start_target):
+	for y in range(1, Game.player.max_depth + Y_BUFFER):
 		generate_row(y)
-	next_row = start_target
+	next_row = Game.player.max_depth + Y_BUFFER
 	
 func generate_row(y):
-	for x in range(0, x_max):
-		var neighborhood
+	var neighborhood
+	var automaton
+	var rule
+	
+	if Game.story:
+		var data = Game.map.get_data(y)
+		if not data:
+			for x in range(0, x_max):
+				set_cell(x, y, 2)
+			return
 		
-		if Game.neighborhood == Neighborhood.NEAREST_NEIGHBOR:
-			neighborhood = [
+		automaton = data[0]
+		neighborhood = data[1]
+		rule = data[2]
+		
+	else:
+		automaton = Game.automaton
+		neighborhood = Game.neighborhood
+		rule = binary_rule
+		
+	for x in range(0, x_max):
+		var neighbors
+		
+		if neighborhood == Neighborhood.NEAREST_NEIGHBOR:
+			neighbors = [
 				get_cell((x-1+x_max) % x_max, y-1),
 				get_cell(x, y-1),
 				get_cell((x+1) % x_max, y-1)
 			]
 			
-		elif Game.neighborhood == Neighborhood.FIVE_CELL:
-			neighborhood = [
+		elif neighborhood == Neighborhood.FIVE_CELL:
+			neighbors = [
 				get_cell((x-2+x_max) % x_max, y-1),
 				get_cell((x-1+x_max) % x_max, y-1),
 				get_cell(x, y-1),
@@ -65,15 +82,15 @@ func generate_row(y):
 				get_cell((x+2) % x_max, y-1),
 			]
 			
-		elif Game.neighborhood == Neighborhood.TWO_STEP:
+		elif neighborhood == Neighborhood.TWO_STEP:
 			if y == 1:
-				neighborhood = [0, 0, 0,
+				neighbors = [0, 0, 0,
 					get_cell((x-1+x_max) % x_max, y-1),
 					get_cell(x, y-1),
 					get_cell((x+1) % x_max, y-1),
 				]
 			else:
-				neighborhood = [
+				neighbors = [
 					get_cell((x-1+x_max) % x_max, y-2),
 					get_cell(x, y-2),
 					get_cell((x+1) % x_max, y-2),
@@ -82,9 +99,9 @@ func generate_row(y):
 					get_cell((x+1) % x_max, y-1),
 				]
 				
-		elif Game.neighborhood == Neighborhood.FIVE_CELL_TWO_STEP:
+		elif neighborhood == Neighborhood.FIVE_CELL_TWO_STEP:
 			if y == 1:
-				neighborhood = [0, 0, 0, 0, 0,
+				neighbors = [0, 0, 0, 0, 0,
 					get_cell((x-2+x_max) % x_max, y-1),
 					get_cell((x-1+x_max) % x_max, y-1),
 					get_cell(x, y-1),
@@ -92,7 +109,7 @@ func generate_row(y):
 					get_cell((x+2) % x_max, y-1),
 				]
 			else:
-				neighborhood = [
+				neighbors = [
 					get_cell((x-2+x_max) % x_max, y-2),
 					get_cell((x-1+x_max) % x_max, y-2),
 					get_cell(x, y-2),
@@ -106,26 +123,32 @@ func generate_row(y):
 				]
 		
 		var bit = 0
-		if Game.automaton == Automaton.CLASSIC:
-			for i in range(0, neighborhood.size()):
-				bit += neighborhood[i] * pow(2, neighborhood.size() - 1 - i)
+		if automaton == Automaton.CLASSIC:
+			for i in range(0, neighbors.size()):
+				bit += neighbors[i] * pow(2, neighbors.size() - 1 - i)
 				
-		elif Game.automaton == Automaton.TOTALISTIC:
-			for neighbor in neighborhood:
+		elif automaton == Automaton.TOTALISTIC:
+			for neighbor in neighbors:
 				bit += neighbor
 		
 		# choose the cell (based on the corresponding bit of the rule)
 		# (rule >> bit) & 1
-		var new_cell = int(binary_rule.substr(binary_rule.length()-1-bit, 1))
+		var new_cell = int(rule.substr(rule.length()-1-bit, 1))
 		set_cell(x, y, new_cell)
 			
 func collided(collision):
-	if collision.collider == self:
-		var tile_pos = world_to_map(collision.position)
-		var tile = get_cellv(tile_pos)
-		if tile == 2:
-			Game.next_level()
-			
+	pass
+	# this was back when levels had an end that warped you to the next level
+	#if collision.collider == self:
+	#	var tile_pos = world_to_map(collision.position)
+	#	var tile = get_cellv(tile_pos)
+	#	if tile == 2:
+	#		Game.next_level()
+
+func build(position):
+	set_cell(position.x, position.y + 1, 1)
+	change_history.append(["BUILD", position])
+	
 func bomb(position):
 	var directions = [
 		[5, 2],
@@ -143,13 +166,22 @@ func bomb(position):
 				set_cell(x, tile_pos.y + d[0], 0)
 			if get_cell(x, tile_pos.y - d[0]) == 1:
 				set_cell(x, tile_pos.y - d[0], 0)
+	change_history.append(["BOMB", position])
 
+func redo_changes(history):
+	for change in history:
+		if change[0] == "BUILD":
+			build(change[1])
+		elif change[0] == "BOMB":
+			bomb(change[1])
+			
 func _process(delta):
 	t += delta
 	
 	# generate rows
-	var target = min(y_max, int(start_target + t * generation_speed))
-	while next_row < target:
+	var target = Game.player.max_depth + Y_BUFFER # how far we'd like to generate to maintain a buffer below the player
+	var limit = int(next_row + GENERATION_SPEED * delta) # how far we can afford to generate without lagging the game
+	while next_row < target and next_row < limit:
 		generate_row(next_row)
 		next_row += 1
 	

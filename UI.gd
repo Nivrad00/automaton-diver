@@ -5,7 +5,8 @@ const NUMBER_KEYS = [
 	KEY_KP_0, KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9
 ]
 
-func _ready():
+func initialize():
+	$Panel.hide()
 	$RuleInput.hide()
 	$InvalidRule.hide()
 	$Controls.hide()
@@ -15,7 +16,7 @@ func _input(event):
 	if event is InputEventKey and event.pressed and event.scancode in NUMBER_KEYS:
 		$InvalidRule.hide()
 		$RuleInput.show()
-		if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() < 19:
+		if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() < 19 or true:
 			$RuleInput/VBoxContainer/HBoxContainer/Rule.text += OS.get_scancode_string(event.scancode)
 
 	if event.is_action_pressed("enter"):
@@ -41,9 +42,11 @@ func _input(event):
 	if event.is_action_pressed("toggle_controls"):
 		if $Controls.visible:
 			$Controls.hide()
+			$Panel.hide()
 			$ShowControls.show()
 		else:
 			$Controls.show()
+			$Panel.show()
 			$ShowControls.hide()
 	
 func set_rule(a, b):
@@ -58,4 +61,7 @@ func set_neighborhood(a):
 func set_initial(a):
 	$Panel/GridContainer/initial_state.text = a
 
+func hide_all():
+	for child in get_children():
+		child.hide()
 	

@@ -1,9 +1,9 @@
 extends KinematicBody2D
 
 var speed = 17
-var jump_speed = -40
+var jump_speed = -45
 var gravity = 180
-var max_velocity = 140
+var max_velocity = 120
 
 var jump_max_time = 0.2
 var jump_timer = 0
@@ -14,6 +14,8 @@ var bomb_timer = 0
 var bombing = false
 
 var velocity = Vector2.ZERO
+
+var max_depth = 0
 
 func _ready():
 	$Build.pitch_scale = $Build.stream.get_length() / bomb_max_time
@@ -48,6 +50,11 @@ func _physics_process(delta):
 		jump_timer > jump_max_time:
 			jumping = false
 	
+	# building
+	if Input.is_action_just_pressed("jump"):
+		$Bip.play()
+		Game.level.build(position)
+	
 	# bombing
 	if Input.is_action_just_pressed("ui_down"):
 		bomb_timer = 0
@@ -75,9 +82,13 @@ func _physics_process(delta):
 	
 	# interacting with the level
 	for i in get_slide_count():
+		break
 		var collision = get_slide_collision(i)
-		if collision:
-			Game.level.collided(collision)
+		if collision and collision.collider == Game.level:
+			if collision.normal.y == 1:
+				var cell_pos = Game.level.world_to_map(collision.position)
+				if Game.level.get_cellv(cell_pos) == 0:
+					position.x = cell_pos.x - 0.5
 	
 	# screen warp
 	while position.x < 0:
@@ -87,3 +98,5 @@ func _physics_process(delta):
 		
 	# drawing
 	update()
+
+	max_depth = max(max_depth, position.y)

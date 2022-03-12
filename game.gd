@@ -2,11 +2,17 @@ extends Node2D
 
 const Big = preload("res://Big.gd")
 const X_MAX = 151 # must be odd
-const Y_MAX = 1000
+const SAVE_FREQ = 1
 
 enum Automaton {CLASSIC, TOTALISTIC}
 enum Neighborhood {NEAREST_NEIGHBOR, FIVE_CELL, TWO_STEP, FIVE_CELL_TWO_STEP}
 enum Initial {POINT, RANDOM}
+
+var map
+var global_time = 0
+var last_save = 0
+
+export var story = false
 
 var DEFAULT_RULE = {
 	Automaton.CLASSIC: {
@@ -57,22 +63,50 @@ onready var player = $Player
 
 func _ready():
 	randomize()
+	
+	if story:
+		$UI.hide_all()
+		map = load("res://map.gd").new()
+		print(map)
+	else:
+		$UI.initialize()
+		
 	start_level()
-
+		
 func next_level():
 	rule = Big.inc(rule, MAX_RULE[automaton][neighborhood])
 	start_level()
 	
 func start_level():
-	$Level.initialize_level()
+	var save_data
+	if story:
+		var file = File.new()
+		if file.file_exists("user://save"):
+			file.open("user://save", File.READ)
+			save_data = file.get_var()
+			file.close()
+			player.position = save_data["PLAYER_POSITION"]
+			player.max_depth = save_data["MAX_DEPTH"]
+		else:
+			player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
+			player.max_depth = player.position
+	else:
+		player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
+		player.max_depth = player.position
+		
+	player.jump_timer = 0
+	player.bomb_timer = 0
+	player.jumping = false
+	player.velocity = Vector2(0, 0)
 	
-	$Player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
-	$Player.jump_timer = 0
-	$Player.bomb_timer = 0
-	$Player.jumping = false
-	$Player.velocity = Vector2(0, 0)
 	var zoom = float(X_MAX) / get_viewport_rect().size.x
 	$Player/Camera2D.zoom = Vector2(zoom, zoom)
+	$Player/Camera2D.limit_left = 0 
+	$Player/Camera2D.limit_right = X_MAX
+	
+	level.initialize_level()
+	if story and save_data:
+		level.redo_changes(save_data["CHANGE_HISTORY"])
 	
 	$UI.set_rule(rule, MAX_RULE[automaton][neighborhood])
 	$UI.set_automaton(AUTOMATON_NAME[automaton])
@@ -86,38 +120,51 @@ func go_to_rule(new_rule):
 		return true
 	else:
 		return false
-		
+	
 func _input(event):
-	if event.is_action_pressed("next"):
-		next_level()
-	if event.is_action_pressed("previous"):
-		rule = Big.dec(rule, MAX_RULE[automaton][neighborhood])
-		start_level()
+	if not story:
+		if event.is_action_pressed("next"):
+			next_level()
+		if event.is_action_pressed("previous"):
+			rule = Big.dec(rule, MAX_RULE[automaton][neighborhood])
+			start_level()
+		
+		if event.is_action_pressed("random"):
+			rule = Big.rand(MAX_RULE[automaton][neighborhood])
+			start_level()
 	
-	if event.is_action_pressed("random"):
-		rule = Big.rand(MAX_RULE[automaton][neighborhood])
-		start_level()
-	
-	if event.is_action_pressed("reset"):
-		start_level()
+		if event.is_action_pressed("reset"):
+			start_level()
+		
+		if event.is_action_pressed("switch_automaton"):
+			automaton = (automaton + 1) % Automaton.size()
+			rule = DEFAULT_RULE[automaton][neighborhood]
+			start_level()
+			
+		if event.is_action_pressed("switch_neighborhood"):
+			neighborhood = (neighborhood + 1) % Neighborhood.size()
+			#if automaton == Automaton.CLASSIC and neighborhood == Neighborhood.FIVE_CELL_TWO_STEP:
+				#neighborhood = (neighborhood + 1) % Neighborhood.size()
+			rule = DEFAULT_RULE[automaton][neighborhood]
+			start_level()
+			
+		if event.is_action_pressed("switch_initial"):
+			initial = (initial + 1) % Initial.size()
+			start_level()
 		
 	if event.is_action_pressed("mute"):
 		AudioServer.set_bus_mute(1, not AudioServer.is_bus_mute(1))
 		
-	if event.is_action_pressed("switch_automaton"):
-		automaton = (automaton + 1) % Automaton.size()
-		rule = DEFAULT_RULE[automaton][neighborhood]
-		start_level()
+func _process(delta):
+	global_time += delta
+	if global_time - last_save > SAVE_FREQ:
+		var file = File.new()
+		file.open("user://save", File.WRITE)
+		file.store_var({
+			"PLAYER_POSITION": player.position,
+			"MAX_DEPTH": player.max_depth,
+			"CHANGE_HISTORY": level.change_history
+		})
+		file.close()
+		last_save = global_time
 		
-	if event.is_action_pressed("switch_neighborhood"):
-		neighborhood = (neighborhood + 1) % Neighborhood.size()
-		if automaton == Automaton.CLASSIC and neighborhood == Neighborhood.FIVE_CELL_TWO_STEP:
-			neighborhood = (neighborhood + 1) % Neighborhood.size()
-		rule = DEFAULT_RULE[automaton][neighborhood]
-		start_level()
-		
-	if event.is_action_pressed("switch_initial"):
-		initial = (initial + 1) % Initial.size()
-		start_level()
-		
-	

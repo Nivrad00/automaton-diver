@@ -24,8 +24,8 @@ static func get_array(string):
 			i -= max_length
 		result.push_front(int(string.substr(0, i + max_length)))
 	
-	# print("converted int " + string + " to array " + str(result))
-	# print("")
+	# # print("converted int " + string + " to array " + str(result))
+	# # print("")
 	return result
 		
 static func get_string(array):
@@ -56,9 +56,9 @@ static func inc(string, maxi=very_big):
 	
 		result = get_string(array)
 	
-	print("incrementing " + string)
-	print("result: " + result)
-	print("")
+	# print("incrementing " + string)
+	# print("result: " + result)
+	# print("")
 	return result
 
 static func dec(string, maxi=very_big):
@@ -78,13 +78,13 @@ static func dec(string, maxi=very_big):
 		array[i] -= 1
 		result = get_string(array)
 	
-	print("decrementing " + string)
-	print("result: " + result)
-	print("")
+	# print("decrementing " + string)
+	# print("result: " + result)
+	# print("")
 	return result
 
 static func less_or_equal(a, b):
-	print("evaluating if " + a + " <= " + b)
+	# print("evaluating if " + a + " <= " + b)
 	a = get_array(a)
 	b = get_array(b)
 	
@@ -105,12 +105,12 @@ static func less_or_equal(a, b):
 				result = true
 				break
 			
-	print("result: " + str(result))
-	print("")
+	# print("result: " + str(result))
+	# print("")
 	return result
 	
 static func rand(maxi):
-	print("generating pseudo-random int out of maximum of " + maxi)
+	# print("generating pseudo-random int out of maximum of " + maxi)
 	var at_max = true
 	var result = ""
 		
@@ -123,12 +123,12 @@ static func rand(maxi):
 			result += str(randi() % 10)
 	
 	result = strip(result)
-	print("result: " + result)
-	print("")
+	# print("result: " + result)
+	# print("")
 	return result
 
 static func bin(number):
-	print("converting int to binary: " + number)
+	# print("converting int to binary: " + number)
 	var array = get_array(number)
 	var result = ""
 
@@ -143,6 +143,6 @@ static func bin(number):
 			
 		result = str(carries[-1]) + result
 	
-	print("result: " + result)
-	print("")
+	# print("result: " + result)
+	# print("")
 	return result
