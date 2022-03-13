@@ -12,14 +12,14 @@ var map
 var global_time = 0
 var last_save = 0
 
-export var story = false
+export var story = true
 
 var DEFAULT_RULE = {
 	Automaton.CLASSIC: {
 		Neighborhood.NEAREST_NEIGHBOR: "82",
 		Neighborhood.FIVE_CELL: "2048938401",
 		Neighborhood.TWO_STEP: "1041049050",
-		Neighborhood.FIVE_CELL_TWO_STEP: "0"
+		Neighborhood.FIVE_CELL_TWO_STEP: "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034"
 	}, 
 	Automaton.TOTALISTIC: {
 		Neighborhood.NEAREST_NEIGHBOR: "5",
@@ -64,12 +64,11 @@ onready var player = $Player
 func _ready():
 	randomize()
 	
+	$UI.initialize()
+	
 	if story:
-		$UI.hide_all()
 		map = load("res://map.gd").new()
 		print(map)
-	else:
-		$UI.initialize()
 		
 	start_level()
 		
@@ -89,10 +88,10 @@ func start_level():
 			player.max_depth = save_data["MAX_DEPTH"]
 		else:
 			player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
-			player.max_depth = player.position
+			player.max_depth = player.position.y
 	else:
 		player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
-		player.max_depth = player.position
+		player.max_depth = player.position.y
 		
 	player.jump_timer = 0
 	player.bomb_timer = 0

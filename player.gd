@@ -60,6 +60,7 @@ func _physics_process(delta):
 		bomb_timer = 0
 		bombing = true
 		$Build.play()
+		print(position.y)
 	
 	if bombing:
 		bomb_timer += delta
@@ -99,4 +100,4 @@ func _physics_process(delta):
 	# drawing
 	update()
 
-	max_depth = max(max_depth, position.y)
+	max_depth = int(max(max_depth, position.y))

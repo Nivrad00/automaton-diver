@@ -12,32 +12,40 @@ func initialize():
 	$Controls.hide()
 	$ShowControls.show()
 	
+	if Game.story:
+		$Controls/Left.hide()
+		$Controls/Bottom.hide()
+	else:
+		$Controls/Left.show()
+		$Controls/Bottom.show()
+	
 func _input(event):
-	if event is InputEventKey and event.pressed and event.scancode in NUMBER_KEYS:
-		$InvalidRule.hide()
-		$RuleInput.show()
-		if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() < 19 or true:
-			$RuleInput/VBoxContainer/HBoxContainer/Rule.text += OS.get_scancode_string(event.scancode)
+	if not Game.story:
+		if event is InputEventKey and event.pressed and event.scancode in NUMBER_KEYS:
+			$InvalidRule.hide()
+			$RuleInput.show()
+			if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() < 19 or true:
+				$RuleInput/VBoxContainer/HBoxContainer/Rule.text += OS.get_scancode_string(event.scancode)
 
-	if event.is_action_pressed("enter"):
-		if $RuleInput.visible:
-			var new_rule = $RuleInput/VBoxContainer/HBoxContainer/Rule.text
-			$RuleInput/VBoxContainer/HBoxContainer/Rule.text = ''
-			$RuleInput.hide()
+		if event.is_action_pressed("enter"):
+			if $RuleInput.visible:
+				var new_rule = $RuleInput/VBoxContainer/HBoxContainer/Rule.text
+				$RuleInput/VBoxContainer/HBoxContainer/Rule.text = ''
+				$RuleInput.hide()
+				
+				if new_rule != null:
+					var success = Game.go_to_rule(new_rule)
+					if not success:
+						$InvalidRule.show()
+						$InvalidRule/Timer.start()
+						yield($InvalidRule/Timer, "timeout")
+						$InvalidRule.hide()
 			
-			if new_rule != null:
-				var success = Game.go_to_rule(new_rule)
-				if not success:
-					$InvalidRule.show()
-					$InvalidRule/Timer.start()
-					yield($InvalidRule/Timer, "timeout")
-					$InvalidRule.hide()
-		
-	if event.is_action_pressed("delete"):
-		var t = $RuleInput/VBoxContainer/HBoxContainer/Rule.text
-		$RuleInput/VBoxContainer/HBoxContainer/Rule.text = t.substr(0, t.length() - 1)
-		if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() == 0:
-			$RuleInput.hide()
+		if event.is_action_pressed("delete"):
+			var t = $RuleInput/VBoxContainer/HBoxContainer/Rule.text
+			$RuleInput/VBoxContainer/HBoxContainer/Rule.text = t.substr(0, t.length() - 1)
+			if $RuleInput/VBoxContainer/HBoxContainer/Rule.text.length() == 0:
+				$RuleInput.hide()
 			
 	if event.is_action_pressed("toggle_controls"):
 		if $Controls.visible:
@@ -46,8 +54,15 @@ func _input(event):
 			$ShowControls.show()
 		else:
 			$Controls.show()
-			$Panel.show()
 			$ShowControls.hide()
+			if Game.story:
+				$Panel.hide()
+				$Controls/Left.hide()
+				$Controls/Bottom.hide()
+			else:
+				$Panel.show()
+				$Controls/Left.show()
+				$Controls/Bottom.show()
 	
 func set_rule(a, b):
 	$Panel/GridContainer/rule.text = a + "/" + b
