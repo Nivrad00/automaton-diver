@@ -12,12 +12,20 @@ func initialize():
 	$Controls.hide()
 	$ShowControls.show()
 	
-	if Game.story:
+	set_story(Game.story)
+		
+func set_story(on):
+	if on:
 		$Controls/Left.hide()
 		$Controls/Bottom.hide()
+		$Controls/Right/GridContainer/reset.hide()
+		$Controls/Right/GridContainer/r.hide()
 	else:
 		$Controls/Left.show()
 		$Controls/Bottom.show()
+		$Controls/Right/GridContainer/reset.show()
+		$Controls/Right/GridContainer/r.show()
+		
 	
 func _input(event):
 	if not Game.story:
@@ -79,4 +87,7 @@ func set_initial(a):
 func hide_all():
 	for child in get_children():
 		child.hide()
-	
+
+func _process(delta):
+	if Game.started and not Game.story:
+		$Panel/GridContainer/depth.text = str(int(round(Game.player.position.y)))

@@ -7,7 +7,7 @@ onready var x_max = Game.X_MAX
 
 var next_row = 0
 
-const GENERATION_SPEED = 200 # generate at max this many rows per second
+const GENERATION_SPEED = 20000 # generate at max this many rows per second
 const Y_BUFFER = 80
 const QUANT = 0.1
 const DEFAULT_VOLUME = -15
@@ -38,7 +38,7 @@ func initialize_level():
 			set_cell(x, 0, randi() % 2)
 	set_cell((x_max-1)/2, 0, 1)
 		
-	for y in range(1, Game.player.max_depth + Y_BUFFER):
+	for y in range(1, 100):#Game.player.max_depth + Y_BUFFER):
 		generate_row(y)
 	next_row = Game.player.max_depth + Y_BUFFER
 	
@@ -137,17 +137,17 @@ func generate_row(y):
 		set_cell(x, y, new_cell)
 			
 func collided(collision):
-	pass
-	# this was back when levels had an end that warped you to the next level
-	#if collision.collider == self:
-	#	var tile_pos = world_to_map(collision.position)
-	#	var tile = get_cellv(tile_pos)
-	#	if tile == 2:
-	#		Game.next_level()
+	if collision.collider == self:
+		var tile_pos = world_to_map(collision.position)
+		var tile = get_cellv(tile_pos)
+		if tile == 2 and Game.story:
+			Game.hit_bottom()
 
 func build(position):
-	set_cell(position.x, position.y + 1, 1)
-	change_history.append(["BUILD", position])
+	if get_cell(position.x, position.y + 1) == 0:
+		set_cell(position.x, position.y + 1, 1)
+		if Game.story:
+			change_history.append(["BUILD", position])
 	
 func bomb(position):
 	var directions = [
@@ -166,7 +166,8 @@ func bomb(position):
 				set_cell(x, tile_pos.y + d[0], 0)
 			if get_cell(x, tile_pos.y - d[0]) == 1:
 				set_cell(x, tile_pos.y - d[0], 0)
-	change_history.append(["BOMB", position])
+	if Game.story:
+		change_history.append(["BOMB", position])
 
 func redo_changes(history):
 	for change in history:
@@ -176,6 +177,8 @@ func redo_changes(history):
 			bomb(change[1])
 			
 func _process(delta):
+	if not Game.started:
+		return
 	t += delta
 	
 	# generate rows

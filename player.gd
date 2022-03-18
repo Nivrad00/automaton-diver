@@ -27,6 +27,12 @@ func _draw():
 		pass
 	
 func _physics_process(delta):
+	if not Game.started:
+		return
+		
+	if position.y <= 0:
+		Game.hit_top()
+		
 	# horizontal movement
 	velocity.x = 0
 	if Input.is_action_pressed("ui_right"):
@@ -37,7 +43,7 @@ func _physics_process(delta):
 		velocity.x *= 0.5
 	
 	# jumping
-	if Input.is_action_just_pressed("ui_up") and is_on_floor():
+	if Input.is_action_pressed("ui_up") and is_on_floor():
 		$Bip.play()
 		jump_timer = 0
 		jumping = true
@@ -83,13 +89,9 @@ func _physics_process(delta):
 	
 	# interacting with the level
 	for i in get_slide_count():
-		break
 		var collision = get_slide_collision(i)
 		if collision and collision.collider == Game.level:
-			if collision.normal.y == 1:
-				var cell_pos = Game.level.world_to_map(collision.position)
-				if Game.level.get_cellv(cell_pos) == 0:
-					position.x = cell_pos.x - 0.5
+			Game.level.collided(collision)
 	
 	# screen warp
 	while position.x < 0:

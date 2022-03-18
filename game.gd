@@ -1,3 +1,8 @@
+# to do
+# speed up loading
+# arcade mode saving?
+# music correlated to what section yuou're in?
+
 extends Node2D
 
 const Big = preload("res://Big.gd")
@@ -13,6 +18,12 @@ var global_time = 0
 var last_save = 0
 
 export var story = true
+
+var saw_intro = false
+var saw_bottom_cutscene = false
+var saw_outro = false
+var started = false
+var ending = false
 
 var DEFAULT_RULE = {
 	Automaton.CLASSIC: {
@@ -60,17 +71,12 @@ var rule = "82"
 
 onready var level = $Level
 onready var player = $Player
+onready var ui = $UI
 
 func _ready():
 	randomize()
-	
-	$UI.initialize()
-	
-	if story:
-		map = load("res://map.gd").new()
-		print(map)
-		
-	start_level()
+	map = load("res://map.gd").new()
+	$Loading/Loading.hide()
 		
 func next_level():
 	rule = Big.inc(rule, MAX_RULE[automaton][neighborhood])
@@ -80,15 +86,21 @@ func start_level():
 	var save_data
 	if story:
 		var file = File.new()
-		if file.file_exists("user://save"):
-			file.open("user://save", File.READ)
+		if file.file_exists("user://story_save"):
+			file.open("user://story_save", File.READ)
 			save_data = file.get_var()
 			file.close()
 			player.position = save_data["PLAYER_POSITION"]
 			player.max_depth = save_data["MAX_DEPTH"]
+			saw_intro = save_data["SAW_INTRO"]
+			saw_bottom_cutscene = save_data["SAW_BOTTOM_CUTSCENE"]
+			saw_outro = save_data["SAW_OUTRO"]
 		else:
 			player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
 			player.max_depth = player.position.y
+			saw_intro = false
+			saw_bottom_cutscene = false
+			saw_outro = false
 	else:
 		player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
 		player.max_depth = player.position.y
@@ -103,14 +115,39 @@ func start_level():
 	$Player/Camera2D.limit_left = 0 
 	$Player/Camera2D.limit_right = X_MAX
 	
+	if Game.player.max_depth > 1000:
+		Game.get_node("Loading/Loading").show()
+		yield(get_tree(), "idle_frame")
+		yield(get_tree(), "idle_frame")
+		
 	level.initialize_level()
 	if story and save_data:
 		level.redo_changes(save_data["CHANGE_HISTORY"])
+		
+	if Game.player.max_depth > 1000:
+		Game.get_node("Loading/Loading").hide()
 	
 	$UI.set_rule(rule, MAX_RULE[automaton][neighborhood])
 	$UI.set_automaton(AUTOMATON_NAME[automaton])
 	$UI.set_neighborhood(NEIGHBORHOOD_NAME[neighborhood])
 	$UI.set_initial(Initial.keys()[initial])
+	
+	if story and not saw_intro:
+		started = false
+		saw_intro = true
+		$UI/Intro.show()
+
+func hit_bottom():
+	if story and not saw_bottom_cutscene:
+		started = false
+		saw_bottom_cutscene = true
+		$UI/Cutscene.show()
+
+func hit_top():
+	if not saw_bottom_cutscene:
+		return
+	started = false
+	ending = true
 	
 func go_to_rule(new_rule):
 	if Big.less_or_equal(new_rule, MAX_RULE[automaton][neighborhood]):
@@ -121,6 +158,9 @@ func go_to_rule(new_rule):
 		return false
 	
 func _input(event):
+	if not started:
+		return
+		
 	if not story:
 		if event.is_action_pressed("next"):
 			next_level()
@@ -151,18 +191,39 @@ func _input(event):
 			initial = (initial + 1) % Initial.size()
 			start_level()
 		
+	if event.is_action_pressed("ui_cancel"):
+		$Menu.show_menu()
+		Game.started = false
+			
 	if event.is_action_pressed("mute"):
 		AudioServer.set_bus_mute(1, not AudioServer.is_bus_mute(1))
 		
 func _process(delta):
+	if ending:
+		player.position.y -= delta * 3.0
+		$UI/Black.show()
+		$UI/Black.color.a = min(1.0, -player.position.y * 0.05)
+		if $UI/Black.color.a == 1.0:
+			ending = false
+			yield(get_tree().create_timer(1.0), "timeout")
+			$UI/Ending.show()
+			var dir = Directory.new()
+			dir.remove("user://story_save")
+	
+	if not Game.started:
+		return
+		
 	global_time += delta
-	if global_time - last_save > SAVE_FREQ:
+	if story and global_time - last_save > SAVE_FREQ:
 		var file = File.new()
-		file.open("user://save", File.WRITE)
+		file.open("user://story_save", File.WRITE)
 		file.store_var({
 			"PLAYER_POSITION": player.position,
 			"MAX_DEPTH": player.max_depth,
-			"CHANGE_HISTORY": level.change_history
+			"CHANGE_HISTORY": level.change_history,
+			"SAW_INTRO": saw_intro,
+			"SAW_BOTTOM_CUTSCENE": saw_bottom_cutscene,
+			"SAW_OUTRO": saw_outro
 		})
 		file.close()
 		last_save = global_time
