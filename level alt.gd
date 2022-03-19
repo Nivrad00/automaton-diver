@@ -15,6 +15,7 @@ const DEFAULT_VOLUME = -15
 var t = 0
 var music_frame = 0
 var note_length = 0
+var music_level = 0
 
 var binary_rule = ""
 
@@ -190,7 +191,15 @@ func _process(delta):
 	
 	# play music	
 	while t > music_frame * QUANT:
+		if Game.story:
+			var player_level = int(Game.player.position.y) - (int(Game.player.position.y) % Game.map.LEVEL_DEPTH)
+			if player_level != music_level:
+				music_level = player_level
+				music_frame = 0
+				t = 0
 		var y = floor(music_frame / x_max) * 10+1
+		if Game.story:
+			y += music_level
 		var x = music_frame % x_max
 		var music1 =\
 			get_cell(x, y) * 16 +\
