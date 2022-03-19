@@ -140,7 +140,7 @@ pitch_scale = 2.34
 bus = "Music"
 
 [node name="Player" type="KinematicBody2D" parent="."]
-position = Vector2( 500, 21001 )
+position = Vector2( 500, -100 )
 script = ExtResource( 3 )
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
@@ -1126,7 +1126,7 @@ __meta__ = {
 [connection signal="visibility_changed" from="UI/Cutscene" to="UI/Cutscene" method="_on_Intro_visibility_changed"]
 [connection signal="pressed" from="UI/Cutscene/Button4" to="UI/Cutscene" method="_on_Button4_pressed"]
 [connection signal="visibility_changed" from="UI/Ending" to="UI/Ending" method="_on_Intro_visibility_changed"]
-[connection signal="pressed" from="UI/Ending/Button4" to="UI/Ending" method="hide"]
 [connection signal="pressed" from="UI/Ending/Button4" to="Menu" method="show_menu"]
+[connection signal="pressed" from="UI/Ending/Button4" to="UI/Ending" method="hide"]
 [connection signal="pressed" from="Menu/VBoxContainer/Button2" to="Menu" method="start_story"]
 [connection signal="pressed" from="Menu/VBoxContainer/Button3" to="Menu" method="start_arcade"]

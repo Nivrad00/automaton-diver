@@ -1,6 +1,7 @@
 # to do
 # speed up loading
 # arcade mode saving?
+# music correlated to what section yuou're in?
 
 extends Node2D
 

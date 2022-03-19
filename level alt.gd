@@ -7,56 +7,21 @@ onready var x_max = Game.X_MAX
 
 var next_row = 0
 
-const GENERATION_SPEED = 200 # generate at max this many rows per second
-const Y_BUFFER = 8#0
+const GENERATION_SPEED = 20000 # generate at max this many rows per second
+const Y_BUFFER = 80
 const QUANT = 0.1
 const DEFAULT_VOLUME = -15
 
 var t = 0
 var music_frame = 0
 var note_length = 0
-var music_level = 0
 
 var binary_rule = ""
 
-var loaded_level = null
 var change_history = []
 
-class level_state:
-	var data = []
-	var rendered = []
-	var x_max = 0
-	
-	func _init(m):
-		x_max = m
-	
-	func has_data(y):
-		return data.size() > y
-		
-	func set_data(x, y, a):
-		while data.size() <= y:
-			var new_row = []
-			for _i in range(x_max):
-				new_row.append(0)
-			data.append(new_row)
-			rendered.append(false)
-		
-		data[y][x] = a
-			
-	func get_data(x, y):
-		return data[y][x]
-			
-	func set_rendered(y, value=true):
-		if rendered.size() > y:
-			rendered[y] = value
-	
-	func get_rendered(y):
-		if rendered.size() > y:
-			return rendered[y]
-	
 func initialize_level():
 	clear()
-	loaded_level = level_state.new(x_max) 
 	$Beep.stop()
 	$Boop.stop()
 	music_frame = 0
@@ -68,18 +33,16 @@ func initialize_level():
 	# first row
 	for x in range(0, x_max):
 		if Game.initial == Initial.POINT:
-			loaded_level.set_data(x, 0, 0)
+			set_cell(x, 0, 0)
 		elif Game.initial == Initial.RANDOM:
-			loaded_level.set_data(x, 0, randi() % 2)
-	loaded_level.set_data((x_max-1)/2, 0, 1)
-	
-	for y in range(1, Game.player.max_depth + Y_BUFFER):
+			set_cell(x, 0, randi() % 2)
+	set_cell((x_max-1)/2, 0, 1)
+		
+	for y in range(1, 100):#Game.player.max_depth + Y_BUFFER):
 		generate_row(y)
 	next_row = Game.player.max_depth + Y_BUFFER
 	
 func generate_row(y):
-	if not loaded_level:
-		return
 	var neighborhood
 	var automaton
 	var rule
@@ -88,7 +51,7 @@ func generate_row(y):
 		var data = Game.map.get_data(y)
 		if not data:
 			for x in range(0, x_max):
-				loaded_level.set_data(x, y, 2)
+				set_cell(x, y, 2)
 			return
 		
 		automaton = data[0]
@@ -105,58 +68,58 @@ func generate_row(y):
 		
 		if neighborhood == Neighborhood.NEAREST_NEIGHBOR:
 			neighbors = [
-				loaded_level.get_data((x-1+x_max) % x_max, y-1),
-				loaded_level.get_data(x, y-1),
-				loaded_level.get_data((x+1) % x_max, y-1)
+				get_cell((x-1+x_max) % x_max, y-1),
+				get_cell(x, y-1),
+				get_cell((x+1) % x_max, y-1)
 			]
 			
 		elif neighborhood == Neighborhood.FIVE_CELL:
 			neighbors = [
-				loaded_level.get_data((x-2+x_max) % x_max, y-1),
-				loaded_level.get_data((x-1+x_max) % x_max, y-1),
-				loaded_level.get_data(x, y-1),
-				loaded_level.get_data((x+1) % x_max, y-1),
-				loaded_level.get_data((x+2) % x_max, y-1),
+				get_cell((x-2+x_max) % x_max, y-1),
+				get_cell((x-1+x_max) % x_max, y-1),
+				get_cell(x, y-1),
+				get_cell((x+1) % x_max, y-1),
+				get_cell((x+2) % x_max, y-1),
 			]
 			
 		elif neighborhood == Neighborhood.TWO_STEP:
 			if y == 1:
 				neighbors = [0, 0, 0,
-					loaded_level.get_data((x-1+x_max) % x_max, y-1),
-					loaded_level.get_data(x, y-1),
-					loaded_level.get_data((x+1) % x_max, y-1),
+					get_cell((x-1+x_max) % x_max, y-1),
+					get_cell(x, y-1),
+					get_cell((x+1) % x_max, y-1),
 				]
 			else:
 				neighbors = [
-					loaded_level.get_data((x-1+x_max) % x_max, y-2),
-					loaded_level.get_data(x, y-2),
-					loaded_level.get_data((x+1) % x_max, y-2),
-					loaded_level.get_data((x-1+x_max) % x_max, y-1),
-					loaded_level.get_data(x, y-1),
-					loaded_level.get_data((x+1) % x_max, y-1),
+					get_cell((x-1+x_max) % x_max, y-2),
+					get_cell(x, y-2),
+					get_cell((x+1) % x_max, y-2),
+					get_cell((x-1+x_max) % x_max, y-1),
+					get_cell(x, y-1),
+					get_cell((x+1) % x_max, y-1),
 				]
 				
 		elif neighborhood == Neighborhood.FIVE_CELL_TWO_STEP:
 			if y == 1:
 				neighbors = [0, 0, 0, 0, 0,
-					loaded_level.get_data((x-2+x_max) % x_max, y-1),
-					loaded_level.get_data((x-1+x_max) % x_max, y-1),
-					loaded_level.get_data(x, y-1),
-					loaded_level.get_data((x+1) % x_max, y-1),
-					loaded_level.get_data((x+2) % x_max, y-1),
+					get_cell((x-2+x_max) % x_max, y-1),
+					get_cell((x-1+x_max) % x_max, y-1),
+					get_cell(x, y-1),
+					get_cell((x+1) % x_max, y-1),
+					get_cell((x+2) % x_max, y-1),
 				]
 			else:
 				neighbors = [
-					loaded_level.get_data((x-2+x_max) % x_max, y-2),
-					loaded_level.get_data((x-1+x_max) % x_max, y-2),
-					loaded_level.get_data(x, y-2),
-					loaded_level.get_data((x+1) % x_max, y-2),
-					loaded_level.get_data((x+2) % x_max, y-2),
-					loaded_level.get_data((x-2+x_max) % x_max, y-1),
-					loaded_level.get_data((x-1+x_max) % x_max, y-1),
-					loaded_level.get_data(x, y-1),
-					loaded_level.get_data((x+1) % x_max, y-1),
-					loaded_level.get_data((x+2) % x_max, y-1),
+					get_cell((x-2+x_max) % x_max, y-2),
+					get_cell((x-1+x_max) % x_max, y-2),
+					get_cell(x, y-2),
+					get_cell((x+1) % x_max, y-2),
+					get_cell((x+2) % x_max, y-2),
+					get_cell((x-2+x_max) % x_max, y-1),
+					get_cell((x-1+x_max) % x_max, y-1),
+					get_cell(x, y-1),
+					get_cell((x+1) % x_max, y-1),
+					get_cell((x+2) % x_max, y-1),
 				]
 		
 		var bit = 0
@@ -171,17 +134,8 @@ func generate_row(y):
 		# choose the cell (based on the corresponding bit of the rule)
 		# (rule >> bit) & 1
 		var new_cell = int(rule.substr(rule.length()-1-bit, 1))
-		loaded_level.set_data(x, y, new_cell)
-
-func render_row(y):
-	if not loaded_level:
-		return
-	if not loaded_level.get_rendered(y):
-		if loaded_level.has_data(y):
-			for x in range(x_max):
-				set_cell(x, y, loaded_level.get_data(x, y))
-			loaded_level.set_rendered(y)
-	
+		set_cell(x, y, new_cell)
+			
 func collided(collision):
 	if collision.collider == self:
 		var tile_pos = world_to_map(collision.position)
@@ -190,11 +144,8 @@ func collided(collision):
 			Game.hit_bottom()
 
 func build(position):
-	var x = int(position.x)
-	var y = int(position.y) + 1
-	if loaded_level.get_data(x, y) != 2:
-		loaded_level.set_data(x, y, 1)
-		loaded_level.set_rendered(y, false)
+	if get_cell(position.x, position.y + 1) == 0:
+		set_cell(position.x, position.y + 1, 1)
 		if Game.story:
 			change_history.append(["BUILD", position])
 	
@@ -211,12 +162,10 @@ func bomb(position):
 	for d in directions:
 		for x in range(-d[1], d[1]+1):
 			x = (int(tile_pos.x) + x + Game.X_MAX) % Game.X_MAX
-			if loaded_level.get_data(x, tile_pos.y + d[0]) == 1:
-				loaded_level.set_data(x, tile_pos.y + d[0], 0)
-			if loaded_level.get_data(x, tile_pos.y - d[0]) == 1:
-				loaded_level.set_data(x, tile_pos.y - d[0], 0)
-	for y in range(tile_pos.y-5, tile_pos.y+6):
-		loaded_level.set_rendered(y, false)
+			if get_cell(x, tile_pos.y + d[0]) == 1:
+				set_cell(x, tile_pos.y + d[0], 0)
+			if get_cell(x, tile_pos.y - d[0]) == 1:
+				set_cell(x, tile_pos.y - d[0], 0)
 	if Game.story:
 		change_history.append(["BOMB", position])
 
@@ -239,24 +188,9 @@ func _process(delta):
 		generate_row(next_row)
 		next_row += 1
 	
-	# render rows
-	var render_min = int(Game.player.position.y) - Y_BUFFER
-	var render_max = int(Game.player.position.y) + Y_BUFFER
-	for y in range(render_min, render_max):
-		render_row(y)
-	
-	# play music
+	# play music	
 	while t > music_frame * QUANT:
-		if Game.story:
-			var player_level = int(Game.player.position.y) - (int(Game.player.position.y) % Game.map.LEVEL_DEPTH)
-			if player_level != music_level:
-				music_level = player_level
-				music_frame = 0
-				t = 0
-			
 		var y = floor(music_frame / x_max) * 10+1
-		if Game.story:
-			y += music_level
 		var x = music_frame % x_max
 		var music1 =\
 			get_cell(x, y) * 16 +\
