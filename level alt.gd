@@ -7,7 +7,7 @@ onready var x_max = Game.X_MAX
 
 var next_row = 0
 
-const GENERATION_SPEED = 2000 # generate at max this many rows per second
+const GENERATION_SPEED = 200 # generate at max this many rows per second
 const Y_BUFFER = 80
 const QUANT = 0.1
 const DEFAULT_VOLUME = -15
@@ -268,18 +268,19 @@ func redo_changes(history):
 			bomb(change[1])
 			
 func _process(delta):
-	if not Game.started:
+	if not Game.started or not visible:
 		$Boop.stop()
 		$Beep.stop()
 		return
 	t += delta
 	
 	# generate rows
-	var target = Game.player.max_depth + Y_BUFFER # how far we'd like to generate to maintain a buffer below the player
-	var limit = int(next_row + GENERATION_SPEED * delta) # how far we can afford to generate without lagging the game
-	while next_row < target and next_row < limit:
-		generate_row(next_row)
-		next_row += 1
+	if not Game.story:
+		var target = Game.player.max_depth + Y_BUFFER # how far we'd like to generate to maintain a buffer below the player
+		var limit = int(next_row + GENERATION_SPEED * delta) # how far we can afford to generate without lagging the game
+		while next_row < target and next_row < limit:
+			generate_row(next_row)
+			next_row += 1
 	
 	# play music	
 	while t > music_frame * QUANT:

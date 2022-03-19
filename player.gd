@@ -59,7 +59,10 @@ func _physics_process(delta):
 	# building
 	if Input.is_action_just_pressed("jump"):
 		$Bip.play()
-		Game.level.build(position)
+		if Game.story:
+			Game.story_level.build(position)
+		else:
+			Game.arcade_level.build(position)
 	
 	# bombing
 	if Input.is_action_just_pressed("ui_down"):
@@ -75,7 +78,10 @@ func _physics_process(delta):
 			$Build.stop()
 			
 		if bomb_timer > bomb_max_time:
-			Game.level.bomb(position)
+			if Game.story:
+				Game.story_level.bomb(position)
+			else:
+				Game.arcade_level.bomb(position)
 			$Boom.play()
 			bombing = false
 	
@@ -90,8 +96,10 @@ func _physics_process(delta):
 	# interacting with the level
 	for i in get_slide_count():
 		var collision = get_slide_collision(i)
-		if collision and collision.collider == Game.level:
-			Game.level.collided(collision)
+		if collision and collision.collider == Game.story_level:
+			Game.story_level.collided(collision)
+		if collision and collision.collider == Game.arcade_level:
+			Game.arcade_level.collided(collision)
 	
 	# screen warp
 	while position.x < 0:

@@ -1,6 +1,3 @@
-# to do
-# arcade mode saving?
-
 extends Node2D
 
 const Big = preload("res://Big.gd")
@@ -22,6 +19,8 @@ var saw_bottom_cutscene = false
 var saw_outro = false
 var started = false
 var ending = false
+
+var loaded_story = false
 
 var DEFAULT_RULE = {
 	Automaton.CLASSIC: {
@@ -67,7 +66,8 @@ var neighborhood = Neighborhood.NEAREST_NEIGHBOR
 var initial = Initial.POINT
 var rule = "82"
 
-onready var level = $Level
+onready var story_level = $StoryLevel
+onready var arcade_level = $ArcadeLevel
 onready var player = $Player
 onready var ui = $UI
 
@@ -81,6 +81,7 @@ func next_level():
 	start_level()
 	
 func start_level():
+		
 	var save_data
 	if story:
 		var file = File.new()
@@ -113,17 +114,32 @@ func start_level():
 	$Player/Camera2D.limit_left = 0 
 	$Player/Camera2D.limit_right = X_MAX
 	
-	if Game.player.max_depth > 1000:
-		Game.get_node("Loading/Loading").show()
-		yield(get_tree(), "idle_frame")
-		yield(get_tree(), "idle_frame")
-	
-	level.initialize_level()
-	if story and save_data:
-		level.redo_changes(save_data["CHANGE_HISTORY"])
+	if story:
+		if not story_level.visible:
+			get_node("Loading/Loading").show()
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			story_level.show()
+			arcade_level.hide()
+			story_level.position.x = 0
+			arcade_level.position.x = 10000
+			get_node("Loading/Loading").hide()	
+		if save_data and not loaded_story:
+			story_level.redo_changes(save_data["CHANGE_HISTORY"])
+			loaded_story = true
 		
-	if Game.player.max_depth > 1000:
-		Game.get_node("Loading/Loading").hide()
+	else:
+		if not arcade_level.visible:
+			get_node("Loading/Loading").show()
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			story_level.hide()
+			arcade_level.show()
+			story_level.position.x = 10000
+			arcade_level.position.x = 0
+			get_node("Loading/Loading").hide()
+		arcade_level.initialize_level()
+	
 	
 	$UI.set_rule(rule, MAX_RULE[automaton][neighborhood])
 	$UI.set_automaton(AUTOMATON_NAME[automaton])
@@ -144,7 +160,7 @@ func hit_bottom():
 		$UI/Cutscene.show()
 
 func hit_top():
-	if not saw_bottom_cutscene:
+	if not story or not saw_bottom_cutscene:
 		return
 	started = false
 	ending = true
@@ -197,9 +213,6 @@ func _input(event):
 			
 	if event.is_action_pressed("mute"):
 		AudioServer.set_bus_mute(1, not AudioServer.is_bus_mute(1))
-		var packed_scene = PackedScene.new()
-		packed_scene.pack($Level)
-		ResourceSaver.save("res://story_level.tscn", packed_scene)
 		
 func _process(delta):
 	if ending:
@@ -210,6 +223,8 @@ func _process(delta):
 			ending = false
 			yield(get_tree().create_timer(1.0), "timeout")
 			$UI/Ending.show()
+			$UI/Black.hide()
+			$UI/Black.color.a == 0.0
 			var dir = Directory.new()
 			dir.remove("user://story_save")
 	
@@ -223,7 +238,7 @@ func _process(delta):
 		file.store_var({
 			"PLAYER_POSITION": player.position,
 			"MAX_DEPTH": player.max_depth,
-			"CHANGE_HISTORY": level.change_history,
+			"CHANGE_HISTORY": story_level.change_history,
 			"SAW_INTRO": saw_intro,
 			"SAW_BOTTOM_CUTSCENE": saw_bottom_cutscene,
 			"SAW_OUTRO": saw_outro
