@@ -7,7 +7,7 @@ onready var x_max = Game.X_MAX
 
 var next_row = 0
 
-const GENERATION_SPEED = 200 # generate at max this many rows per second
+const GENERATION_SPEED = 2000 # generate at max this many rows per second
 const Y_BUFFER = 80
 const QUANT = 0.1
 const DEFAULT_VOLUME = -15
@@ -269,6 +269,8 @@ func redo_changes(history):
 			
 func _process(delta):
 	if not Game.started:
+		$Boop.stop()
+		$Beep.stop()
 		return
 	t += delta
 	

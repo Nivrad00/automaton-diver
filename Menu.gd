@@ -9,7 +9,6 @@ func start_story():
 	Game.ui.initialize()
 	for child in get_children():
 		child.hide()
-	Game.started = true
 
 func start_arcade():
 	Game.story = false
@@ -17,7 +16,6 @@ func start_arcade():
 	Game.ui.initialize()
 	for child in get_children():
 		child.hide()
-	Game.started = true
 
 func show_menu():
 	for child in get_children():

@@ -140,7 +140,7 @@ pitch_scale = 2.34
 bus = "Music"
 
 [node name="Player" type="KinematicBody2D" parent="."]
-position = Vector2( 500, -100 )
+position = Vector2( 500, 32500 )
 script = ExtResource( 3 )
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
@@ -995,7 +995,7 @@ margin_bottom = 296.0
 custom_fonts/font = SubResource( 20 )
 text = "the end.
 
-thanks for playing my dumb game.
+thanks for playing my silly game.
 
 -niv"
 align = 1

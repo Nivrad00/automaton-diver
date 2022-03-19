@@ -1,7 +1,5 @@
 # to do
-# speed up loading
 # arcade mode saving?
-# music correlated to what section yuou're in?
 
 extends Node2D
 
@@ -136,6 +134,8 @@ func start_level():
 		started = false
 		saw_intro = true
 		$UI/Intro.show()
+	else:
+		Game.started = true
 
 func hit_bottom():
 	if story and not saw_bottom_cutscene:
@@ -197,6 +197,9 @@ func _input(event):
 			
 	if event.is_action_pressed("mute"):
 		AudioServer.set_bus_mute(1, not AudioServer.is_bus_mute(1))
+		var packed_scene = PackedScene.new()
+		packed_scene.pack($Level)
+		ResourceSaver.save("res://story_level.tscn", packed_scene)
 		
 func _process(delta):
 	if ending:
