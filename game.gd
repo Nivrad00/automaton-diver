@@ -119,7 +119,7 @@ func start_level():
 		Game.get_node("Loading/Loading").show()
 		yield(get_tree(), "idle_frame")
 		yield(get_tree(), "idle_frame")
-		
+	
 	level.initialize_level()
 	if story and save_data:
 		level.redo_changes(save_data["CHANGE_HISTORY"])
