@@ -103,7 +103,12 @@ func start_level():
 	else:
 		player.position = Vector2((X_MAX-1.0)/2.0+0.5, -0.5)
 		player.max_depth = player.position.y
-		
+	
+	# prevent player from spawning in the ground
+	print(map.LEVEL_DEPTH * map.map.size())
+	if player.position.y >= map.LEVEL_DEPTH * map.map.size():
+		player.position.y = map.LEVEL_DEPTH * map.map.size() - 1
+	
 	player.jump_timer = 0
 	player.bomb_timer = 0
 	player.jumping = false
